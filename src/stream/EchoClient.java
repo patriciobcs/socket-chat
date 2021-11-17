@@ -15,6 +15,8 @@ public class EchoClient {
     private App app;
     private String host;
     private Integer port;
+    private Socket echoSocket = null;
+    private PrintStream socOut = null;
 
     public EchoClient(String host, Integer port) {
         this.host = host;
@@ -30,28 +32,14 @@ public class EchoClient {
     public App getApp() { return app; }
     public void setApp(App app) { this.app = app; }
 
-
-
     public void runClient() throws IOException, InterruptedException {
-        Socket echoSocket = null;
-        Thread thIn = null;
-        Thread thOut = null;
-
-        //BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-        //System.out.println("Insert your name: ");
-        //setName(stdIn.readLine());
-
         try {
             // creation socket ==> connexion
             echoSocket = new Socket(host, port);
-            EchoClientThread echoClientThreadOut = new EchoClientThread(this, echoSocket, "out");
-            EchoClientThread echoClientThreadIn = new EchoClientThread(this, echoSocket, "in");
-            thOut = new Thread(echoClientThreadOut);
-            thIn = new Thread(echoClientThreadIn);
-            thOut.start();
+            socOut = new PrintStream(echoSocket.getOutputStream());
+            EchoClientThread echoClientThreadIn = new EchoClientThread(this, echoSocket);
+            Thread thIn = new Thread(echoClientThreadIn);
             thIn.start();
-            thOut.join();
-            thIn.join();
         } catch (UnknownHostException e) {
             System.err.println("Don't know about host:" + host);
             System.exit(1);
@@ -60,9 +48,30 @@ public class EchoClient {
             System.exit(1);
         }
 
-        echoSocket.close();
+        Runtime.getRuntime().addShutdownHook(new Thread()
+        {
+            @Override
+            public void run()
+            {
+                try {
+                    echoSocket.close();
+                    socOut.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
+    public void send(String message) {
+        try {
+            socOut.println(message);
+            System.out.println(message);
+        } catch (Exception e) {
+            System.err.println("Error in EchoClientTread:" + e);
+            e.printStackTrace();
+        }
+    }
 
     /**
      *  main method

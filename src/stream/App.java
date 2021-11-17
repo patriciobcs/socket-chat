@@ -9,6 +9,8 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -27,6 +29,7 @@ public class App {
     JTextField usernameChooser;
     JFrame preFrame;
     EchoClient client;
+    String username;
 
     public EchoClient getClient() {
         return client;
@@ -106,23 +109,23 @@ public class App {
         newFrame.setVisible(true);
     }
 
-    class sendMessageButtonListener implements ActionListener {
-        public void actionPerformed(ActionEvent event) {
-            if (messageBox.getText().length() < 1) {
-                // do nothing
-            } else if (messageBox.getText().equals(".clear")) {
-                chatBox.setText("Cleared all messages\n");
-                messageBox.setText("");
-            } else {
-                chatBox.append("<" + username + ">:  " + messageBox.getText()
-                        + "\n");
-                messageBox.setText("");
-            }
-            messageBox.requestFocusInWindow();
-        }
+    public void addMessage(String message) {
+        message += "\n";
+        chatBox.append(message);
+        messageBox.setText("");
+        messageBox.requestFocusInWindow();
     }
 
-    String  username;
+    class sendMessageButtonListener implements ActionListener {
+        public void actionPerformed(ActionEvent event) {
+            if (messageBox.getText().length() > 0) {
+                String date = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(Calendar.getInstance().getTime());
+                String message = date + " - " + client.getName() + ": " + messageBox.getText();
+                addMessage(message);
+                client.send(message);
+            }
+        }
+    }
 
     class enterServerButtonListener implements ActionListener {
         public void actionPerformed(ActionEvent event) {
@@ -130,6 +133,7 @@ public class App {
             if (username.length() < 1) {
                 System.out.println("No!");
             } else {
+                display();
                 client.setName(username);
                 System.out.println(username);
                 try {
@@ -140,7 +144,6 @@ public class App {
                     e.printStackTrace();
                 }
                 preFrame.setVisible(false);
-                display();
             }
         }
 

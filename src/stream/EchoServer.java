@@ -37,7 +37,6 @@ public class EchoServer  {
         ServerSocket listenSocket;
 
 		clients = new ArrayList<EchoServerThread>();
-
 		writer = new PrintWriter("chat.txt", "UTF-8");
 
 		try {
