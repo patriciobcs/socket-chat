@@ -4,7 +4,7 @@
  * Date: 10/01/04
  * Authors:
  */
-package stream;
+package stream.chat;
 
 import javax.swing.*;
 import java.io.*;

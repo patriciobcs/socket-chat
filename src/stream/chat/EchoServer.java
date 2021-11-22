@@ -5,7 +5,7 @@
  * Authors:
  */
 
-package stream;
+package stream.chat;
 
 import java.io.*;
 import java.net.*;
