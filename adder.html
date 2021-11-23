@@ -17,7 +17,7 @@
 				b = Number(document.getElementById("second").value);
 				if (a && b) {
 					let data = {a, b};
-					fetch("/", {
+					fetch("/sum", {
 						method: "POST",
 						headers: {'Content-Type': 'application/json'},
 						body: JSON.stringify(data)

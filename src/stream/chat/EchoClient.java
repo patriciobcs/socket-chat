@@ -63,6 +63,10 @@ public class EchoClient {
         });
     }
 
+    /**
+     * send message to the client through sockets
+     * @param message
+     */
     public void send(String message) {
         try {
             socOut.println(message);
