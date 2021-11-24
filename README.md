@@ -33,9 +33,9 @@ There is no EchoServer as intermediary.
   - HTMLs
   - Images
   - JSON
-- POST (200, 500, 409):
+- POST (200, 201, 500, 409):
   - JSON
-- PUT (200, 500)
+- PUT (200, 201, 500)
   - JSON
 - DELETE (200, 404, 500)
   - JSON

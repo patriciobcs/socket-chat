@@ -4,7 +4,9 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.json.*;
@@ -43,14 +45,18 @@ public class WebServer {
 
         // Set output stream
         OutputStream out = remote.getOutputStream();
+        InputStream in = remote.getInputStream();
         // Set input stream
-        InputStreamReader in = new InputStreamReader(remote.getInputStream());
-        BufferedReader br = new BufferedReader(in);
+        InputStreamReader inr = new InputStreamReader(in);
+        DataInputStream dis = new DataInputStream(in);
+        BufferedReader br = new BufferedReader(inr);
 
         // Set HTTP params
         String[] requestCols, queries = null;
         String method = null, uri = null;
         String headerLine;
+        String contentType = "";
+        String fileContent = "";
 
         do {
           headerLine = br.readLine();
@@ -61,6 +67,9 @@ public class WebServer {
             queries = uri.length() > 0 ? uri.split("/") : new String[]{};
             System.out.println("Method:\t " + method);
             System.out.println("URI:\t " + uri.length());
+          } else if (headerLine != null && headerLine.toLowerCase(Locale.ROOT).contains("content-type: ")) {
+            contentType = headerLine.toLowerCase(Locale.ROOT).replaceAll("content-type: ", "");
+            System.out.println(contentType);
           }
         } while (headerLine != null && headerLine.length() != 0);
 
@@ -68,9 +77,18 @@ public class WebServer {
 
         // Set payload
         StringBuilder payloadBuilder = new StringBuilder();
-        while(br.ready()){ payloadBuilder.append((char) br.read());}
-        JSONObject payload = new JSONObject(payloadBuilder.length() > 0 ? payloadBuilder.toString().trim() : "{}");
-        System.out.println("Payload: " + payload);
+        JSONObject payload = new JSONObject("{}");
+        System.out.println(contentType);
+        if (Objects.equals(contentType.toLowerCase(Locale.ROOT), "application/json")) {
+          System.out.println("aa");
+          while(br.ready()){ payloadBuilder.append((char) br.read()); }
+          payload = new JSONObject(payloadBuilder.length() > 0 ? payloadBuilder.toString().trim() : "{}");
+          System.out.println("Payload: " + payload);
+        } else {
+          while(br.ready()){ payloadBuilder.append((char) br.read()); }
+          fileContent = payloadBuilder.toString().trim();
+          System.out.println(fileContent);
+        }
 
         // REST methods
         switch (method) {
@@ -94,7 +112,9 @@ public class WebServer {
           case "POST" -> {
             JSONObject response = new JSONObject();
             if (queries.length > 1 && queries[1].endsWith(".json") && payload.length() > 0) {
-              response = addFile(queries[1], payload.toString());
+              response = addTextFile(queries[1], payload.toString());
+            } else if (queries.length > 1 && queries[queries.length - 1].split("\\.").length == 2) {
+              response = addFile(queries[1], fileContent);
             } else if (queries.length > 1 && Objects.equals(queries[1], "sum") &&
                     payload.has("a") && payload.has("b")) {
               double a = payload.getInt("a"), b = payload.getInt("b");
@@ -102,7 +122,7 @@ public class WebServer {
               response.put("c", a + b);
             } else {
               response.put("success", false);
-              response.put("error", "500 Internal Server Error");
+              response.put("status", "500 Internal Server Error");
             }
             sendJSON(out, response);
           }
@@ -112,7 +132,7 @@ public class WebServer {
               response = updateFile(queries[1], payload.toString());
             } else {
               response.put("success", false);
-              response.put("error", "500 Internal Server Error");
+              response.put("status", "500 Internal Server Error");
             }
             sendJSON(out, response);
           }
@@ -122,7 +142,7 @@ public class WebServer {
               response = removeFile(queries[1]);
             } else {
               response.put("success", false);
-              response.put("error", "500 Internal Server Error");
+              response.put("status", "500 Internal Server Error");
             }
             sendJSON(out, response);
           }
@@ -221,12 +241,44 @@ public class WebServer {
   }
 
   /**
+   * Create a new file with the filename and its content
+   * @param filename
+   * @param fileContent
+   * @return JSONObject
+   */
+  public JSONObject addFile(String filename, String fileContent) {
+    File file = new File("doc/" + filename);
+    JSONObject response = new JSONObject();
+    try {
+      if (file.createNewFile()) {
+        FileOutputStream fos = new FileOutputStream("doc/" + filename);
+        byte[] data = Base64.getDecoder().decode(fileContent);
+        fos.write(data);
+        fos.close();
+        System.out.println("File created: " + file.getName());
+        response.put("success", true);
+        response.put("status", "201 Created");
+      } else {
+        System.out.println("File already exists");
+        response.put("success", false);
+        response.put("status", "409 Conflict");
+      }
+    } catch (IOException e) {
+      System.out.println("Error creating file");
+      response.put("success", false);
+      response.put("status", "500 Internal Server Error");
+    }
+    return response;
+  }
+
+
+  /**
    * Create a new file with the filename and its content (payload)
    * @param filename
    * @param payload
    * @return
    */
-  public JSONObject addFile(String filename, String payload) {
+  public JSONObject addTextFile(String filename, String payload) {
     File file = new File("doc/" + filename);
     JSONObject response = new JSONObject();
     try {
@@ -236,15 +288,16 @@ public class WebServer {
         writer.write(payload);
         writer.close();
         response.put("success", true);
+        response.put("status", "201 Created");
       } else {
         System.out.println("File already exists");
         response.put("success", false);
-        response.put("error", "409 Conflict");
+        response.put("status", "409 Conflict");
       }
     } catch (IOException e) {
       System.out.println("Error creating file");
       response.put("success", false);
-      response.put("error", "500 Internal Server Error");
+      response.put("status", "500 Internal Server Error");
     }
     return response;
   }
@@ -265,11 +318,11 @@ public class WebServer {
       response.put("success", true);
     } catch (FileNotFoundException e) {
       response.put("success", false);
-      response.put("error", "404 Not Found");
+      response.put("status", "404 Not Found");
     } catch (IOException e) {
       System.out.println("Error creating file");
       response.put("success", false);
-      response.put("error", "500 Internal Server Error");
+      response.put("status", "500 Internal Server Error");
     }
     return response;
   }
@@ -284,14 +337,14 @@ public class WebServer {
     File file = new File("doc/" + filename);
     if (!file.exists()) {
       response.put("success", false);
-      response.put("error", "404 Not Found");
+      response.put("status", "404 Not Found");
     } else if (file.delete()) {
       System.out.println("Deleted the file: " + file.getName());
       response.put("success", true);
     } else {
       System.out.println("Error creating file");
       response.put("success", false);
-      response.put("error", "500 Internal Server Error");
+      response.put("status", "500 Internal Server Error");
     }
     return response;
   }
@@ -309,7 +362,7 @@ public class WebServer {
 
     // Set status
     String status = "200 OK";
-    if (!jsonObject.getBoolean("success")) status = jsonObject.getString("error");
+    if (jsonObject.has("status")) status = jsonObject.getString("status");
 
     // Send the HTTP headers
     pwOut.println("HTTP/1.1 " + status);
