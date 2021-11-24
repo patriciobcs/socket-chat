@@ -1,4 +1,4 @@
-# TP: Network Programming
+# Network Programming - Java Chat & Server
 
 ## EchoChat
 
