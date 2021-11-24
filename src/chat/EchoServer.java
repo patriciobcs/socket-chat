@@ -26,11 +26,13 @@ public class EchoServer  {
   	* runServer method
   	* 
   	**/
-    public void runServer() throws FileNotFoundException, UnsupportedEncodingException {
+    public void runServer() throws IOException {
         ServerSocket listenSocket;
 
 		clients = new ArrayList<EchoServerThread>();
-		writer = new PrintWriter("doc/chat.txt", "UTF-8");
+		File f = new File("doc/chat.txt");
+		if (!f.exists()) f.createNewFile();
+		writer = new PrintWriter(new FileWriter(f, true));
 
 		try {
 			listenSocket = new ServerSocket(port); //port
@@ -50,7 +52,7 @@ public class EchoServer  {
 		writer.close();
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		if (args.length != 1) {
 			System.out.println("Usage: java EchoServer <EchoServer port>");
 			System.exit(1);

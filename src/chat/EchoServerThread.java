@@ -19,7 +19,11 @@ public class EchoServerThread implements Runnable {
     public void sendLastMessages() {
         BufferedReader br = null;
         try {
-            br = new BufferedReader(new FileReader("doc/chat.txt"));
+            File f = new File("doc/chat.txt");
+            if (!f.exists()){
+                f.createNewFile();
+            }
+            br = new BufferedReader(new FileReader(f));
             String line = null;
             PrintStream clientSocOut = new PrintStream(socket.getOutputStream());
             while (true) {
