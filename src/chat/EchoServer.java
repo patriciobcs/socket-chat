@@ -1,11 +1,4 @@
-/***
- * EchoServer
- * Example of a TCP server
- * Date: 10/01/04
- * Authors:
- */
-
-package stream.chat;
+package chat;
 
 import java.io.*;
 import java.net.*;
@@ -37,7 +30,7 @@ public class EchoServer  {
         ServerSocket listenSocket;
 
 		clients = new ArrayList<EchoServerThread>();
-		writer = new PrintWriter("chat.txt", "UTF-8");
+		writer = new PrintWriter("doc/chat.txt", "UTF-8");
 
 		try {
 			listenSocket = new ServerSocket(port); //port

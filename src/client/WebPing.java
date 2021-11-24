@@ -1,4 +1,4 @@
-package stream.client;
+package client;
 
 import java.net.InetAddress;
 import java.net.Socket;

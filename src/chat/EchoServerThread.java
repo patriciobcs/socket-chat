@@ -1,4 +1,4 @@
-package stream.chat;
+package chat;
 
 import java.io.*;
 import java.net.Socket;
@@ -19,7 +19,7 @@ public class EchoServerThread implements Runnable {
     public void sendLastMessages() {
         BufferedReader br = null;
         try {
-            br = new BufferedReader(new FileReader("chat.txt"));
+            br = new BufferedReader(new FileReader("doc/chat.txt"));
             String line = null;
             PrintStream clientSocOut = new PrintStream(socket.getOutputStream());
             while (true) {

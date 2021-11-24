@@ -1,4 +1,4 @@
-package stream.chat;
+package chat;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -11,14 +11,9 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.UUID;
 
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
+import javax.swing.*;
 
 public class App {
     String title = "EchoChat";
@@ -27,6 +22,7 @@ public class App {
     JTextField messageBox;
     JTextArea chatBox;
     JTextField usernameChooser;
+    JCheckBox castChooser;
     JFrame preFrame;
     EchoClient client;
     String username;
@@ -42,24 +38,30 @@ public class App {
         newFrame.setVisible(false);
         preFrame = new JFrame(title);
         usernameChooser = new JTextField(15);
-        JLabel chooseUsernameLabel = new JLabel("Pick a username:");
-        JButton enterServer = new JButton("Enter Chat Server");
+        castChooser = new JCheckBox();
+        JLabel chooseUsernameLabel = new JLabel("Username");
+        JButton enterServer = new JButton("Chat");
         enterServer.addActionListener(new enterServerButtonListener());
         JPanel prePanel = new JPanel(new GridBagLayout());
+        JPanel castPanel = new JPanel(new GridBagLayout());
 
-        GridBagConstraints preRight = new GridBagConstraints();
-        preRight.insets = new Insets(0, 0, 0, 10);
-        preRight.anchor = GridBagConstraints.EAST;
-        GridBagConstraints preLeft = new GridBagConstraints();
-        preLeft.anchor = GridBagConstraints.WEST;
-        preLeft.insets = new Insets(0, 10, 0, 10);
-        preRight.fill = GridBagConstraints.HORIZONTAL;
-        preRight.gridwidth = GridBagConstraints.REMAINDER;
+        GridBagConstraints preTop = new GridBagConstraints();
+        preTop.anchor = GridBagConstraints.CENTER;
+        preTop.insets = new Insets(0, 10, 0, 10);
+        preTop.gridwidth = GridBagConstraints.REMAINDER;
+        GridBagConstraints preBottom = new GridBagConstraints();
+        preBottom.anchor = GridBagConstraints.CENTER;
+        preBottom.insets = new Insets(0, 10, 0, 10);
+        preBottom.fill = GridBagConstraints.HORIZONTAL;
+        preBottom.gridwidth = GridBagConstraints.REMAINDER;
 
-        prePanel.add(chooseUsernameLabel, preLeft);
-        prePanel.add(usernameChooser, preRight);
+        prePanel.add(chooseUsernameLabel, preTop);
+        prePanel.add(usernameChooser, preBottom);
+
+        castPanel.add(castChooser, preTop);
+        castPanel.add(enterServer, preBottom);
         preFrame.add(prePanel, BorderLayout.CENTER);
-        preFrame.add(enterServer, BorderLayout.SOUTH);
+        preFrame.add(castPanel, BorderLayout.SOUTH);
         preFrame.setSize(300, 300);
         preFrame.setVisible(true);
     }
@@ -130,21 +132,23 @@ public class App {
     class enterServerButtonListener implements ActionListener {
         public void actionPerformed(ActionEvent event) {
             username = usernameChooser.getText();
-            if (username.length() < 1) {
-                System.out.println("No!");
-            } else {
-                display();
-                client.setName(username);
-                System.out.println(username);
-                try {
-                    client.runClient();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            if (username.length() < 1) username = UUID.randomUUID().toString().substring(0, 6);
+            display();
+            client.setName(username);
+            System.out.println(username);
+            try {
+                if (castChooser.isSelected()) {
+                    client.setHost("228.5.6.7");
+                    client.runClientMulticast();
+                } else {
+                    client.runClientUnicast();
                 }
-                preFrame.setVisible(false);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
+            preFrame.setVisible(false);
         }
 
     }

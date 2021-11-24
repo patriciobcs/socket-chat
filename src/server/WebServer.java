@@ -1,4 +1,4 @@
-package stream.server;
+package server;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -76,7 +76,7 @@ public class WebServer {
         switch (method) {
           case "GET" -> {
             // Return Adder (index) HTML
-            if (Objects.equals(uri, "/") || Objects.equals(uri, "")) {
+            if (queries.length == 0 || Objects.equals(uri, "/")) {
               sendTextFile(out, "adder.html", "text/html");
               // Return others resources
             } else if (queries.length > 1) {
@@ -85,11 +85,11 @@ public class WebServer {
                 sendTextFile(out, queries[1], "text/html");
               } else if (queries[queries.length - 1].endsWith(".json")) {
                 sendTextFile(out, queries[1], "application/json;charset=UTF-8");
-                // Return Images
-              } else {
-                sendImage(out, queries[1]);
-              }
-            }
+                // Return files
+              } else if (queries[queries.length - 1].split("\\.").length == 2) {
+                sendFile(out, queries[1]);
+              } else fileNotFound(out);
+            } else fileNotFound(out);
           }
           case "POST" -> {
             JSONObject response = new JSONObject();
@@ -110,6 +110,9 @@ public class WebServer {
             JSONObject response = new JSONObject();
             if (queries.length > 1 && queries[1].endsWith(".json") && payload.length() > 0) {
               response = updateFile(queries[1], payload.toString());
+            } else {
+              response.put("success", false);
+              response.put("error", "500 Internal Server Error");
             }
             sendJSON(out, response);
           }
@@ -117,11 +120,13 @@ public class WebServer {
             JSONObject response = new JSONObject();
             if (queries.length > 1 && queries[1].endsWith(".json")) {
               response = removeFile(queries[1]);
+            } else {
+              response.put("success", false);
+              response.put("error", "500 Internal Server Error");
             }
             sendJSON(out, response);
           }
         }
-
         remote.close();
       } catch (Exception e) {
         System.out.println("Error: " + e);
@@ -140,7 +145,7 @@ public class WebServer {
     PrintWriter pwOut = new PrintWriter(out);
 
     try {
-      BufferedReader br = new BufferedReader(new FileReader(filename));
+      BufferedReader br = new BufferedReader(new FileReader("doc/" + filename));
 
       // Send the HTTP headers
       pwOut.println("HTTP/1.0 200 OK");
@@ -158,12 +163,12 @@ public class WebServer {
   }
 
   /**
-   * Send image through sockets
+   * Send file through sockets
    * @param out
    * @param filename
    * @throws IOException
    */
-  public void sendImage(OutputStream out, String filename) throws IOException {
+  public void sendFile(OutputStream out, String filename) throws IOException {
     DataOutputStream writer = new DataOutputStream(new BufferedOutputStream(out));
 
     // Get file extension
@@ -174,12 +179,12 @@ public class WebServer {
     // Get file content
     byte[] bytes = new byte[1024];
     try {
-      InputStream in = new FileInputStream(filename);
+      InputStream in = new FileInputStream("doc/" + filename);
       int count;
 
       // Send the HTTP headers
       writer.writeBytes("HTTP/1.0 200 OK\r\n");
-      writer.writeBytes("Content-Type: image/" + extension + "\r\n");
+      writer.writeBytes("Content-Type: file/" + extension + "\r\n");
       writer.writeBytes("Server: PR Web Server\r\n");
       writer.writeBytes("\r\n");
 
@@ -201,7 +206,7 @@ public class WebServer {
   public void fileNotFound(OutputStream out) throws IOException {
     PrintWriter pwOut = new PrintWriter(out);
     System.out.println("File not found");
-    BufferedReader br = new BufferedReader(new FileReader("404.html"));
+    BufferedReader br = new BufferedReader(new FileReader("doc/404.html"));
 
     // Send the HTTP headers
     pwOut.println("HTTP/1.0 404 Not Found");
@@ -222,12 +227,12 @@ public class WebServer {
    * @return
    */
   public JSONObject addFile(String filename, String payload) {
-    File file = new File(filename);
+    File file = new File("doc/" + filename);
     JSONObject response = new JSONObject();
     try {
       if (file.createNewFile()) {
         System.out.println("File created: " + file.getName());
-        FileWriter writer = new FileWriter(file.getName());
+        FileWriter writer = new FileWriter("doc/" + file.getName());
         writer.write(payload);
         writer.close();
         response.put("success", true);
@@ -254,7 +259,7 @@ public class WebServer {
   public JSONObject updateFile(String filename, String payload) {
     JSONObject response = new JSONObject();
     try {
-      FileWriter writer = new FileWriter(filename);
+      FileWriter writer = new FileWriter("doc/" + filename);
       writer.write(payload);
       writer.close();
       response.put("success", true);
@@ -276,7 +281,7 @@ public class WebServer {
    */
   public JSONObject removeFile(String filename) {
     JSONObject response = new JSONObject();
-    File file = new File(filename);
+    File file = new File("doc/" + filename);
     if (!file.exists()) {
       response.put("success", false);
       response.put("error", "404 Not Found");
